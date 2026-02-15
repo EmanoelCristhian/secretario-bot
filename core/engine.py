@@ -16,18 +16,17 @@ from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.retrievers.bm25 import BM25Retriever
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.postprocessor import SimilarityPostprocessor
-from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.response_synthesizers import get_response_synthesizer
 from llama_index.core.response_synthesizers import ResponseMode
+from llama_index.llms.gemini import Gemini
+
 
 from config import (
-    OLLAMA_MODEL,
+    GOOGLE_API_KEY,
+    LLM_MODEL,
     EMBEDDING_MODEL,
-    LLM_REQUEST_TIMEOUT,
     LLM_TEMPERATURE,
-    LLM_CONTEXT_WINDOW,
-    LLM_NUM_CTX,
     SIMILARITY_TOP_K,
     SIMILARITY_CUTOFF,
     STORAGE_DIR,
@@ -51,21 +50,20 @@ class InstitutionalHybridBot:
         self.query_engine = self._setup_hybrid_engine()
 
     def _configure_llm(self):
-        """Configura o modelo de linguagem e embeddings."""
-        logger.info(f"⚙️ Configurando LLM: {OLLAMA_MODEL}")
+        """Configura o modelo de linguagem (Gemini) e embeddings."""
+        logger.info(f"⚙️ Configurando LLM: {LLM_MODEL}")
         
-        self.llm = Ollama(
-            model=OLLAMA_MODEL,
-            request_timeout=LLM_REQUEST_TIMEOUT,
+        # Criar instância do LLM Gemini
+        self.llm = Gemini(
+            model=LLM_MODEL,
+            api_key=GOOGLE_API_KEY,
             temperature=LLM_TEMPERATURE,
-            context_window=LLM_CONTEXT_WINDOW,
-            num_ctx=LLM_NUM_CTX,
             system_prompt=self.prompt_templates.build_system_message()
         )
         
         Settings.llm = self.llm
         Settings.embed_model = HuggingFaceEmbedding(model_name=EMBEDDING_MODEL)
-        logger.info(f"✅ LLM configurado: {OLLAMA_MODEL}")
+        logger.info(f"✅ LLM configurado: {LLM_MODEL}")
 
     def _create_custom_prompt_template(self):
         """

@@ -1,14 +1,9 @@
-"""
-Módulo de configuração.
-"""
 from .settings import (
     TELEGRAM_TOKEN,
-    OLLAMA_MODEL,
+    GOOGLE_API_KEY,
+    LLM_MODEL,
     EMBEDDING_MODEL,
-    LLM_REQUEST_TIMEOUT,
     LLM_TEMPERATURE,
-    LLM_CONTEXT_WINDOW,
-    LLM_NUM_CTX,
     SIMILARITY_TOP_K,
     SIMILARITY_CUTOFF,
     QUERY_TIMEOUT,
@@ -21,12 +16,10 @@ from .settings import (
 
 __all__ = [
     "TELEGRAM_TOKEN",
-    "OLLAMA_MODEL",
+    "GOOGLE_API_KEY",
+    "LLM_MODEL",
     "EMBEDDING_MODEL",
-    "LLM_REQUEST_TIMEOUT",
     "LLM_TEMPERATURE",
-    "LLM_CONTEXT_WINDOW",
-    "LLM_NUM_CTX",
     "SIMILARITY_TOP_K",
     "SIMILARITY_CUTOFF",
     "QUERY_TIMEOUT",

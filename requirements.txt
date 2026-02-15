@@ -1,6 +1,6 @@
 # RAG Framework and Orchestration
 llama-index>=0.12.0
-llama-index-llms-ollama
+llama-index-llms-gemini      # <-- Adicionado
 llama-index-embeddings-huggingface
 llama-index-vector-stores-chroma
 llama-index-retrievers-bm25

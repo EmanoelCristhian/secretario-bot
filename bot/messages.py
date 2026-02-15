@@ -1,7 +1,7 @@
 """
 Templates de mensagens do bot.
 """
-from config import OLLAMA_MODEL, QUERY_TIMEOUT
+from config import LLM_MODEL, QUERY_TIMEOUT
 
 
 class BotMessages:
@@ -9,11 +9,10 @@ class BotMessages:
     
     @staticmethod
     def welcome_message() -> str:
-        """Mensagem de boas-vindas."""
         return (
             f"🤖 *Assistente Institucional Ativo*\n\n"
             f"📚 Base de conhecimento: Regulamentos acadêmicos\n"
-            f"🧠 Modelo: {OLLAMA_MODEL}\n"
+            f"🧠 Modelo: {LLM_MODEL}\n" # Atualizado aqui
             f"🔍 Busca: Híbrida (Vetorial + BM25)\n\n"
             f"💡 Envie sua pergunta!"
         )

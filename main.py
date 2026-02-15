@@ -10,23 +10,18 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
 
-from config import TELEGRAM_TOKEN, OLLAMA_MODEL, QUERY_TIMEOUT, STORAGE_DIR
+from config import TELEGRAM_TOKEN, LLM_MODEL, QUERY_TIMEOUT, STORAGE_DIR
 from core import InstitutionalHybridBot
 from bot import BotHandlers
 from utils.logger import logger
 
 
 def print_startup_banner():
-    """Exibe banner de inicialização."""
     print(f"\n{'='*60}")
     print(f"🚀 SECRETÁRIO BOT ONLINE")
     print(f"{'='*60}")
-    print(f"📚 Modelo LLM: {OLLAMA_MODEL}")
+    print(f"📚 Modelo LLM: {LLM_MODEL}") # Atualizado aqui
     print(f"⏱️  Timeout: {QUERY_TIMEOUT}s")
-    print(f"🔍 Busca: Vetorial + BM25")
-    print(f"💾 Storage: {STORAGE_DIR}")
-    print(f"{'='*60}\n")
-    print("💡 Pressione Ctrl+C para encerrar\n")
 
 
 async def start_bot_service():

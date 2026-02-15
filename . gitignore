@@ -1,0 +1,11 @@
+# Ignorar arquivos específicos
+.env
+secret.txt
+
+# Ignorar pastas inteiras
+node_modules/
+build/
+
+# Ignorar extensões de arquivo
+*.log
+*.tmp

@@ -5,6 +5,7 @@ secret.txt
 # Ignorar pastas inteiras
 node_modules/
 build/
+storage/
 
 # Ignorar extensões de arquivo
 *.log

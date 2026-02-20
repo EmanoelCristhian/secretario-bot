@@ -3,7 +3,6 @@ Motor de busca híbrida genérico para documentos institucionais.
 """
 import os
 import chromadb
-import re
 
 from llama_index.core import (
     StorageContext,
@@ -78,7 +77,7 @@ Sua tarefa é extrair e listar informações exclusivamente dos documentos forne
 2. **SEM COMENTÁRIOS EXTRAS**: Não adicione informações sobre o que NÃO está no documento (como menções a outros semestres ou atividades de extensão) se o utilizador não perguntou por isso.
 3. **EXAUSTIVIDADE**: Liste TODAS as disciplinas e cargas horárias encontradas para o bloco solicitado.
 4. **FIDELIDADE**: Transcreva exatamente como aparece (Ex: "Física 60" vira "Física - 60 horas").
-5. **FONTE**: Cite o ficheiro de origem no finazl.
+5. **FONTE**: Cite o ficheiro de origem no final.
 
 ### CONTEXTO DOS DOCUMENTOS:
 {context_str}
@@ -142,36 +141,15 @@ Sua tarefa é extrair e listar informações exclusivamente dos documentos forne
 
         return [n for n in nodes if hasattr(n, 'text') and n.text and n.text.strip()]
 
-    def _normalize_block_reference(self, text: str) -> str:
-        """Normaliza referências a blocos usando termos encontrados nos PDFs."""
-        block_patterns = {
-            r'\b(primeiro|1º|1|i)\s*(bloco|período|semestre)\b': 'Bloco I Primeiro semestre',
-            r'\b(segundo|2º|2|ii)\s*(bloco|período|semestre)\b': 'Bloco II Segundo semestre',
-            r'\b(terceiro|3º|3|iii)\s*(bloco|período|semestre)\b': 'Bloco III Terceiro semestre',
-            r'\b(quarto|4º|4|iv)\s*(bloco|período|semestre)\b': 'Bloco IV Quarto semestre',
-        }
-        
-        normalized = text
-        text_lower = text.lower()
-        for pattern, expansion in block_patterns.items():
-            if re.search(pattern, text_lower, re.IGNORECASE):
-                normalized = f"{text} {expansion}"
-                logger.info(f"  📌 Query expandida: {expansion}")
-                break
-        return normalized
-
     def query(self, text: str) -> str:
-        """Processa a consulta com normalização e validação."""
+        """Processa a consulta com validação."""
         logger.info(f"💬 Query recebida: '{text[:100]}...'")
         try:
-            # 1. Normalização para bater com termos do PDF (Ex: Bloco I)
-            normalized_query = self._normalize_block_reference(text)
-            
-            # 2. Execução da busca e síntese
-            response = self.query_engine.query(normalized_query)
+            # 1. Execução da busca e síntese usando o texto original
+            response = self.query_engine.query(text)
             response_text = str(response)
             
-            # 3. Validação de segurança
+            # 2. Validação de segurança
             validated_response = self.response_validator.validate_response(response_text, text)
             
             if self.response_validator.detect_hallucination_indicators(validated_response):
@@ -185,9 +163,9 @@ Sua tarefa é extrair e listar informações exclusivamente dos documentos forne
     def get_context_for_query(self, text: str, top_k: int = 15) -> str:
         """Recupera apenas o contexto para análise de debug."""
         try:
-            normalized = self._normalize_block_reference(text)
-            nodes = self.query_engine.retriever.retrieve(normalized)
-            context_parts = [f"📝 Query original: {text}\n🔍 Query expandida: {normalized}\n{'='*40}\n"]
+            # Recupera utilizando o texto original
+            nodes = self.query_engine.retriever.retrieve(text)
+            context_parts = [f"📝 Query original: {text}\n{'='*40}\n"]
             
             for i, node in enumerate(nodes[:top_k], 1):
                 source = node.node.metadata.get('file_name', 'N/A') if hasattr(node.node, 'metadata') else 'N/A'

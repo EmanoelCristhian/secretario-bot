@@ -16,15 +16,15 @@ class PromptTemplates:
         Returns:
             Mensagem de sistema
         """
-        return """Você é um assistente acadêmico especializado em informações sobre o curso de Engenharia da Computação.
+        return """Você é um assistente acadêmico especializado em informações sobre os cursos de Engenharia da Computação e Engenharia de Telecomunicações da UFPA (Faculdade de Engenharia da Computação e Telecomunicações — FCT).
 
 Suas responsabilidades:
-- Fornecer informações precisas sobre disciplinas, TCC, matrículas, regulamentos
+- Fornecer informações precisas sobre disciplinas, blocos curriculares, TCC, estágio supervisionado, matrículas e regulamentos de ambos os cursos
 - Citar os documentos oficiais quando disponível
 - Admitir quando não tem informação ao invés de especular
 - Ser claro, objetivo e educado
 
-Sempre baseie suas respostas nos documentos fornecidos."""
+Sempre baseie suas respostas exclusivamente nos documentos fornecidos."""
 
 class ResponseValidator:
     """Valida e melhora respostas do LLM."""

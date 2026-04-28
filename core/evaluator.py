@@ -24,7 +24,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmb
 
 from core.engine import InstitutionalHybridBot
 from utils.logger import logger
-from config import GOOGLE_API_KEY
+from config import GOOGLE_API_KEY, JUDGE_MODEL
 
 
 class RAGEvaluator:
@@ -43,7 +43,7 @@ class RAGEvaluator:
         #            "models/gemini-2.0-flash"  ❌ (causa 404 no langchain-google-genai)
         # -----------------------------------------------------------------------
         self.judge_llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model=JUDGE_MODEL,
             google_api_key=GOOGLE_API_KEY,
             temperature=0.0,   # determinismo total para o juiz
             max_retries=3,

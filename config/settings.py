@@ -14,7 +14,8 @@ if not GOOGLE_API_KEY:
     raise ValueError("GOOGLE_API_KEY não definido no arquivo .env")
 
 # ---------------- MODELS ----------------
-LLM_MODEL = "models/gemini-2.5-flash"  # Nome genérico da variável (antes era OLLAMA_MODEL)
+LLM_MODEL = "models/gemini-2.5-flash"
+JUDGE_MODEL = "gemini-2.5-flash"  # ChatGoogleGenerativeAI não aceita o prefixo "models/"
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
 # ---------------- LLM SETTINGS ----------------

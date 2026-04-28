@@ -29,6 +29,9 @@ SIMILARITY_CUTOFF = 0.3
 QUERY_TIMEOUT = 90  # segundos
 MAX_RESPONSE_LENGTH = 4000  # caracteres
 
+# ---------------- CONVERSATION HISTORY ----------------
+HISTORY_MAX_TURNS = 5  # turnos (par pergunta+resposta) mantidos por usuário
+
 # ---------------- STORAGE ----------------
 STORAGE_DIR = "./storage"
 CHROMA_COLLECTION_NAME = "institucional_db"

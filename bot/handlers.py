@@ -8,29 +8,25 @@ from aiogram.filters import Command
 from config import QUERY_TIMEOUT, MAX_RESPONSE_LENGTH
 from bot.messages import BotMessages
 from utils.logger import logger
-from utils import GreetingDetector
+from utils import GreetingDetector, ConversationHistory
 
 
 class BotHandlers:
     """Gerencia os handlers do bot Telegram."""
-    
+
     def __init__(self, engine_instance):
-        """
-        Inicializa os handlers.
-        
-        Args:
-            engine_instance: Instância do motor de busca
-        """
         self.engine = engine_instance
         self.messages = BotMessages()
         self.greeting_detector = GreetingDetector()
         self.users_started = set()
+        self.history = ConversationHistory()
 
     async def cmd_start(self, message: types.Message):
         """Handler do comando /start."""
         user_id = message.from_user.id
         self.users_started.add(user_id)
-        
+        self.history.clear(user_id)
+
         await message.answer(
             self.messages.welcome_message(),
             parse_mode="Markdown"
@@ -123,49 +119,39 @@ class BotHandlers:
     async def _process_query(self, message: types.Message, user_text: str, user_id: int):
         """
         Processa uma query do usuário.
-        
+
         Args:
             message: Mensagem do Telegram
             user_text: Texto da mensagem
             user_id: ID do usuário
         """
-        # Feedback imediato
-        processing_msg = await message.answer(
-            self.messages.processing_message()
-        )
-        
+        processing_msg = await message.answer(self.messages.processing_message())
+
         try:
-            # Processar query com timeout
             logger.info("🔄 Iniciando processamento...")
+            history_block = self.history.get_prompt_block(user_id)
+
             response = await asyncio.wait_for(
-                asyncio.to_thread(self.engine.query, user_text),
-                timeout=QUERY_TIMEOUT
+                asyncio.to_thread(self.engine.query, user_text, history_block),
+                timeout=QUERY_TIMEOUT,
             )
-            
+
             logger.info("✅ Resposta obtida, enviando...")
-            
-            # Remover mensagem de processamento
             await processing_msg.delete()
-            
-            # Preparar resposta
+
             response_text = self._prepare_response(str(response), user_id)
-            
-            # Enviar resposta
             await message.answer(response_text)
+
+            self.history.add_turn(user_id, user_text, str(response))
             logger.info(f"✅ Resposta enviada para {user_id}")
-            
+
         except asyncio.TimeoutError:
             logger.error(f"⏰ Timeout ao processar query de {user_id}")
             await processing_msg.edit_text(self.messages.timeout_message())
-            
+
         except Exception as e:
-            logger.error(
-                f"❌ Erro ao processar query de {user_id}: {e}",
-                exc_info=True
-            )
-            await processing_msg.edit_text(
-                self.messages.error_message(str(e))
-            )
+            logger.error(f"❌ Erro ao processar query de {user_id}: {e}", exc_info=True)
+            await processing_msg.edit_text(self.messages.error_message(str(e)))
 
     def _prepare_response(self, response_text: str, user_id: int) -> str:
         """

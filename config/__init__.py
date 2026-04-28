@@ -12,7 +12,8 @@ from .settings import (
     STORAGE_DIR,
     CHROMA_COLLECTION_NAME,
     LOG_LEVEL,
-    LOG_FORMAT
+    LOG_FORMAT,
+    HISTORY_MAX_TURNS,
 )
 
 __all__ = [
@@ -29,5 +30,6 @@ __all__ = [
     "STORAGE_DIR",
     "CHROMA_COLLECTION_NAME",
     "LOG_LEVEL",
-    "LOG_FORMAT"
+    "LOG_FORMAT",
+    "HISTORY_MAX_TURNS",
 ]

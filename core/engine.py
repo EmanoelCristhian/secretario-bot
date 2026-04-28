@@ -141,20 +141,27 @@ Sua tarefa é extrair e listar informações exclusivamente dos documentos forne
 
         return [n for n in nodes if hasattr(n, 'text') and n.text and n.text.strip()]
 
-    def query(self, text: str) -> str:
-        """Processa a consulta com validação."""
+    def query(self, text: str, history_block: str = "") -> str:
+        """Processa a consulta com validação.
+
+        Args:
+            text: Pergunta do usuário.
+            history_block: Bloco de histórico formatado (opcional).
+                           Quando fornecido é pré-pendido à query para que o
+                           LLM resolva referências como "e no segundo bloco?".
+        """
         logger.info(f"💬 Query recebida: '{text[:100]}...'")
         try:
-            # 1. Execução da busca e síntese usando o texto original
-            response = self.query_engine.query(text)
+            effective_query = f"{history_block}{text}" if history_block else text
+
+            response = self.query_engine.query(effective_query)
             response_text = str(response)
-            
-            # 2. Validação de segurança
+
             validated_response = self.response_validator.validate_response(response_text, text)
-            
+
             if self.response_validator.detect_hallucination_indicators(validated_response):
                 logger.warning("⚠️ Possível alucinação detectada")
-            
+
             return validated_response
         except Exception as e:
             logger.error(f"❌ Erro no motor de busca: {e}", exc_info=True)

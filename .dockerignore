@@ -6,9 +6,8 @@ venv/
 .venv/
 env/
 
-# Arquivos de desenvolvimento e avaliação
-extract_data_documents.py
-extract_txt.py
+# Scripts de desenvolvimento — não necessários em produção
+scripts/
 debug_retrieval.py
 teste_telegram.py
 resultados_tcc*.csv

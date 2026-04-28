@@ -138,12 +138,20 @@ Sua tarefa é extrair e listar informações exclusivamente dos documentos forne
 
         logger.info(f"✅ Engine pronta (modo: {self.retrieval_mode})")
 
+        # SimilarityPostprocessor só faz sentido para busca vetorial pura,
+        # onde os scores são cosine similarity (0.0–1.0).
+        # No modo híbrido/RRF os scores ficam em ~0.01–0.03 (1/(60+rank)),
+        # abaixo de qualquer cutoff razoável — o filtro eliminaria todos os nós.
+        node_postprocessors = (
+            [SimilarityPostprocessor(similarity_cutoff=SIMILARITY_CUTOFF)]
+            if self.retrieval_mode == "vector"
+            else []
+        )
+
         return RetrieverQueryEngine(
             retriever=retriever,
             response_synthesizer=response_synthesizer,
-            node_postprocessors=[
-                SimilarityPostprocessor(similarity_cutoff=SIMILARITY_CUTOFF)
-            ]
+            node_postprocessors=node_postprocessors,
         )
 
     def _get_valid_nodes(self, index, chroma_collection):

@@ -1,0 +1,9 @@
+services:
+  secretario-bot:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Monta a storage como volume para persistir atualizações do índice
+      - ./storage:/app/storage

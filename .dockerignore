@@ -1,0 +1,36 @@
+# PDFs originais — já indexados no storage/, não precisamos deles na imagem
+documents/
+
+# Ambiente virtual local
+venv/
+.venv/
+env/
+
+# Arquivos de desenvolvimento e avaliação
+extract_data_documents.py
+extract_txt.py
+debug_retrieval.py
+teste_telegram.py
+resultados_tcc*.csv
+core/evaluator.py
+
+# Secrets locais — fornecidos via variáveis de ambiente no Railway
+.env
+.env.*
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Git e CI
+.git/
+.gitignore
+.claude/
+
+# Editores e SO
+.DS_Store
+*.swp
+*.swo

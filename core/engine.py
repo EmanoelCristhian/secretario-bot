@@ -39,10 +39,21 @@ from utils.logger import logger
 class InstitutionalHybridBot:
     """
     Motor de busca híbrida para documentos institucionais da UFPA.
+
+    Args:
+        storage_dir: Diretório do ChromaDB.
+        retrieval_mode: "hybrid" (padrão), "vector" ou "bm25".
+                        Usado na avaliação comparativa para isolar a
+                        contribuição de cada estratégia de busca.
     """
-    
-    def __init__(self, storage_dir: str = STORAGE_DIR):
+
+    VALID_MODES = {"hybrid", "vector", "bm25"}
+
+    def __init__(self, storage_dir: str = STORAGE_DIR, retrieval_mode: str = "hybrid"):
+        if retrieval_mode not in self.VALID_MODES:
+            raise ValueError(f"retrieval_mode deve ser um de {self.VALID_MODES}")
         self.storage_dir = storage_dir
+        self.retrieval_mode = retrieval_mode
         self.prompt_templates = PromptTemplates()
         self.response_validator = ResponseValidator()
         self._configure_llm()
@@ -106,28 +117,32 @@ Sua tarefa é extrair e listar informações exclusivamente dos documentos forne
 
         index = load_index_from_storage(storage_context)
         nodes = self._get_valid_nodes(index, chroma_collection)
-        
-        # Aumentamos o top_k para garantir que listas longas de disciplinas sejam capturadas
+
         vector_retriever = VectorIndexRetriever(index=index, similarity_top_k=SIMILARITY_TOP_K)
         bm25_retriever = BM25Retriever.from_defaults(nodes=nodes, similarity_top_k=SIMILARITY_TOP_K)
-        hybrid_retriever = HybridRetriever(vector_retriever, bm25_retriever)
+
+        if self.retrieval_mode == "vector":
+            retriever = vector_retriever
+        elif self.retrieval_mode == "bm25":
+            retriever = bm25_retriever
+        else:
+            retriever = HybridRetriever(vector_retriever, bm25_retriever)
 
         text_qa_template = self._create_custom_prompt_template()
-        
-        # TREE_SUMMARIZE é ideal para consolidar listas espalhadas em vários documentos
+
         response_synthesizer = get_response_synthesizer(
             response_mode=ResponseMode.TREE_SUMMARIZE,
             text_qa_template=text_qa_template,
             verbose=True
         )
 
-        logger.info("✅ Engine híbrida pronta!")
+        logger.info(f"✅ Engine pronta (modo: {self.retrieval_mode})")
 
         return RetrieverQueryEngine(
-            retriever=hybrid_retriever,
+            retriever=retriever,
             response_synthesizer=response_synthesizer,
             node_postprocessors=[
-                SimilarityPostprocessor(similarity_cutoff=0.3) # Cutoff reduzido para capturar toda a lista
+                SimilarityPostprocessor(similarity_cutoff=SIMILARITY_CUTOFF)
             ]
         )
 

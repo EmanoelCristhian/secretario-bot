@@ -17,13 +17,13 @@ Quanto aos **procedimentos técnicos**, enquadra-se como estudo de caso aplicado
 | Componente | Especificação |
 |---|---|
 | Processador | Apple M2 (ARM64, 8 núcleos de desempenho + eficiência) |
-| Arquitetura de memória | Unified Memory (memória compartilhada CPU/GPU/Neural Engine) |
+| Memória RAM | 16 GB Unified Memory (memória compartilhada CPU/GPU/Neural Engine) |
 | Ambiente de execução local | macOS (desenvolvimento e avaliação RAGAS) |
 | Ambiente de produção | Railway (cloud PaaS, contêiner Docker, CPU x86-64) |
 
 ### 2.2 Software, Linguagens e Bibliotecas
 
-**Linguagem de programação:** Python 3.12.12
+**Linguagem de programação:** Python 3.12.12 (ambiente virtual `venv`)
 
 **Tabela de dependências com versões exatas:**
 
@@ -48,7 +48,7 @@ Quanto aos **procedimentos técnicos**, enquadra-se como estudo de caso aplicado
 
 **Modelo de linguagem (LLM juiz) para avaliação:** Google Gemini 2.5 Flash (`gemini-2.5-flash`), acessado via LangChain Google GenAI.
 
-**Modelo de embeddings:** `BAAI/bge-small-en-v1.5` — modelo de transformers com 384 dimensões, da família BGE (*Beijing Academy of Artificial Intelligence*), otimizado para recuperação semântica.
+**Modelo de embeddings:** `BAAI/bge-small-en-v1.5` — modelo de transformers com 384 dimensões, da família BGE (*Beijing Academy of Artificial Intelligence*), otimizado para recuperação semântica. Apesar do sufixo `-en`, modelos BGE apresentam transferência multilíngue razoável em benchmarks de recuperação para português, e sua compactidade (66 M de parâmetros) foi determinante para execução no ambiente local sem GPU dedicada. Alternativas multilíngues (e.g., `paraphrase-multilingual-MiniLM-L12-v2`) não foram avaliadas de forma sistemática — essa limitação é discutida na Seção 7.
 
 ### 2.3 Corpus Documental
 
@@ -133,7 +133,7 @@ $$\text{score}(d, q) = \sum_{i=1}^{n} \text{IDF}(t_i) \cdot \left( \delta + \fra
 
 onde $f(t_i, d)$ é a frequência do termo $t_i$ no documento $d$, $|d|$ é o comprimento do documento e $\text{avgdl}$ é o comprimento médio do corpus.
 
-A tokenização aplica o padrão regex `(?u)\b\w\w+\b` (tokens com dois ou mais caracteres alfanuméricos), sem stemming.
+A tokenização aplica o padrão regex `(?u)\b\w\w+\b` (tokens com dois ou mais caracteres alfanuméricos), sem stemming. O parâmetro `language` do `BM25Retriever` foi mantido no valor padrão (`'en'`); a configuração com `language='pt'` ou tokenizador personalizado para português não foi avaliada — implicações dessa escolha são discutidas na Seção 7, item 4.
 
 #### 3.3.4 Reciprocal Rank Fusion (RRF)
 
@@ -254,7 +254,9 @@ O LLM de síntese (Gemini 2.5 Flash, $T=0.1$), o modelo de embeddings e o prompt
 
 ### 5.3 Coleta do Baseline
 
-Um baseline pré-melhorias foi coletado (`resultados_tcc_baseline.csv`) antes da implementação do RRF e do histórico de conversa, com a versão anterior do sistema (`core/retriever.py` com fusão simples por `node_id`). O baseline contém **15 questões** e **3 métricas** (Faithfulness, AnswerRelevancy, ContextPrecision).
+Um baseline pré-melhorias foi coletado (`resultados_tcc_baseline.csv`, gerado no commit `8fcf688`) para servir como ponto de comparação antes das evoluções arquiteturais. Naquele estado do código, o sistema utilizava uma estratégia de fusão simples por `node_id` (não RRF), sem gestão de histórico de conversa e com o `SimilarityPostprocessor` ativo sobre todos os modos de recuperação. Em outras palavras, o baseline representa o sistema antes das seguintes melhorias implementadas ao longo deste trabalho: (i) fusão por Reciprocal Rank Fusion, (ii) buffer de histórico de conversa e (iii) correção do postprocessor para modos híbrido/BM25.
+
+O baseline contém **15 questões** e **3 métricas** (Faithfulness, AnswerRelevancy, ContextPrecision).
 
 **Resultados do baseline (10 questões válidas — 5 falharam por expiração de chave de API durante a coleta):**
 
@@ -275,6 +277,16 @@ python -m core.evaluator
 ```
 
 O script executa sequencialmente as três configurações sobre o mesmo test set de 19 questões, registra respostas e contextos recuperados, e calcula as quatro métricas RAGAS com o LLM juiz (Gemini 2.5 Flash, $T=0.0$, determinístico). Os resultados são consolidados em `resultados_tcc_comparativo.csv` com coluna `retrieval_mode` para distinção das configurações.
+
+**Resultados comparativos** *(a preencher após execução — `python -m core.evaluator`)*:
+
+| Configuração | Faithfulness | AnswerRelevancy | ContextPrecision | ContextRecall |
+|---|---|---|---|---|
+| `hybrid` | — | — | — | — |
+| `vector` | — | — | — | — |
+| `bm25` | — | — | — | — |
+
+> **Hipótese:** espera-se que o modo `hybrid` apresente ContextPrecision superior ao baseline (0.247), uma vez que o RRF reordena os chunks combinando evidências semânticas e lexicais, posicionando os documentos relevantes nas primeiras posições do ranking. O ContextRecall do modo `hybrid` deve superar o modo `vector` puro, pois o BM25 complementa a busca semântica na recuperação de termos técnicos específicos (nomes de disciplinas, siglas, cargas horárias numéricas) que podem não ter boa representação vetorial.
 
 ### 5.5 Reprodutibilidade
 
@@ -333,7 +345,7 @@ Valores em $[0, 1]$; complementar ao ContextPrecision — enquanto Precision med
 
 3. **Dependência de API externa:** tanto o LLM de síntese (Gemini 2.5 Flash) quanto o LLM juiz do RAGAS dependem da disponibilidade e das cotas da API Google. Durante a coleta do baseline, 5 das 15 questões falharam por expiração de chave de API, comprometendo parcialmente os resultados.
 
-4. **Ausência de stemming:** o tokenizador do BM25 opera por padrão sem stemming (parâmetro `skip_stemming=True` implícito), o que pode reduzir a correspondência de termos morfologicamente relacionados em português. A avaliação em língua portuguesa com um tokenizador sem normalização morfológica pode penalizar o retriever BM25 em relação a configurações com stemming.
+4. **Tokenização e embeddings em português:** o tokenizador do BM25 foi mantido no idioma padrão (`language='en'`), sem stemming, o que pode reduzir a correspondência de termos morfologicamente relacionados em português. Analogamente, o modelo de embeddings `BAAI/bge-small-en-v1.5`, treinado predominantemente em inglês, foi adotado pela sua compacidade e por apresentar transferência multilíngue razoável em benchmarks de recuperação. Nenhuma das duas alternativas (tokenizador português para BM25 ou modelo multilíngue para embeddings) foi avaliada de forma sistemática, o que constitui uma limitação da presente avaliação.
 
 5. **Divergência entre docstore e ChromaDB:** a indexação incremental ao longo do desenvolvimento resultou em 898 nós no docstore e 455 vetores no ChromaDB. Embora o motor de recuperação opere corretamente (o BM25 utiliza o docstore e a busca vetorial utiliza o ChromaDB de forma independente), a inconsistência entre os dois índices não foi resolvida por reindexação completa antes da coleta dos resultados finais.
 
@@ -343,15 +355,9 @@ Valores em $[0, 1]$; complementar ao ContextPrecision — enquanto Precision med
 
 ---
 
-## 8. Pontos a Confirmar
+## 8. Pendências para a Defesa
 
-Os itens abaixo representam suposições feitas com base na análise do código e que devem ser validados antes da submissão do TCC.
-
-| # | Ponto | Local no texto |
+| # | Ação | Status |
 |---|---|---|
-| A | Confirmar se a RAM do Apple M2 utilizado é 8 GB, 16 GB ou 24 GB — relevante para a seção Materiais. | Seção 2.1 |
-| B | O resultado do baseline (`resultados_tcc.csv`, commit `8fcf688`) foi gerado com o sistema **sem** RRF e **sem** histórico de conversa — confirmar se essa é a interpretação correta para a narrativa de evolução do sistema. | Seção 5.3 |
-| C | Confirmar se a avaliação comparativa completa (`hybrid` vs `vector` vs `bm25`) foi ou será executada antes da defesa, ou se o TCC apresentará apenas o baseline com a análise qualitativa do impacto esperado do RRF. | Seção 5.4 |
-| D | O modelo de embeddings `BAAI/bge-small-en-v1.5` foi treinado predominantemente em inglês. Confirmar se foi avaliada alguma alternativa multilíngue (e.g., `paraphrase-multilingual-MiniLM-L12-v2`) ou se a escolha pelo modelo em inglês foi deliberada por desempenho/tamanho. | Seção 3.3.2 e Seção 7, item 4 |
-| E | O parâmetro `language='en'` no `BM25Retriever.from_defaults` é o default da biblioteca — confirmar se houve tentativa de usar `language='pt'` ou tokenizador personalizado para português. | Seção 3.3.3 e Seção 7, item 4 |
-| F | Confirmar a versão do Python utilizada na geração do baseline: o venv usa Python 3.12.12, mas o sistema foi detectado com Python 3.13.2 no sistema operacional. O Docker usa `python:3.13-slim`. | Seção 2.2 |
+| 1 | Executar `python -m core.evaluator` e preencher a tabela da Seção 5.4 com os resultados `hybrid`, `vector` e `bm25` | ⏳ Pendente |
+| 2 | Após preencher a tabela, redigir a análise comparativa: comparar as 4 métricas entre os 3 modos e em relação ao baseline; confirmar ou refutar as hipóteses levantadas na Seção 5.4 | ⏳ Pendente |

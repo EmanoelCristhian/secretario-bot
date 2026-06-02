@@ -57,6 +57,27 @@ class BotMessages:
         )
     
     @staticmethod
+    def small_talk_response() -> str:
+        """Resposta para mensagens fora do escopo acadêmico."""
+        return (
+            "😊 Entendido! Só consigo ajudar com assuntos da FCT/UFPA — "
+            "disciplinas, ementas, regulamentos, TCC, estágio e informações institucionais.\n\n"
+            "Tem alguma dúvida sobre o seu curso? É só perguntar!"
+        )
+
+    @staticmethod
+    def not_found_response(query: str) -> str:
+        """Resposta quando não encontra informação nos documentos."""
+        return (
+            f"Não encontrei informações sobre *\"{query}\"* nos documentos da FCT.\n\n"
+            "💡 Tente reformular a pergunta ou pergunte sobre:\n"
+            "• Disciplinas e ementas dos cursos\n"
+            "• Regulamento de TCC ou Estágio\n"
+            "• Grade curricular por bloco\n"
+            "• Atividades complementares"
+        )
+
+    @staticmethod
     def truncation_warning() -> str:
         """Aviso de resposta truncada."""
         return "..."

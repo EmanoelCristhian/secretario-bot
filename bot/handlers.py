@@ -99,21 +99,24 @@ class BotHandlers:
         if is_greeting and not has_question:
             logger.info(f"👋 Saudação detectada de {user_id} (sem pergunta)")
             await message.answer(self.messages.greeting_response())
-            # Marcar que usuário já foi "iniciado"
             self.users_started.add(user_id)
             return
-        
+
         # Caso 2: Saudação + pergunta
         if is_greeting and has_question:
             logger.info(f"👋 Saudação + pergunta detectada de {user_id}")
-            # Enviar saudação primeiro (se ainda não usou /start)
             if user_id not in self.users_started:
                 await message.answer(self.messages.greeting_with_query_intro())
                 self.users_started.add(user_id)
             # Continua para processar a pergunta abaixo
-        
-        # Caso 3: Apenas pergunta (ou saudação + pergunta)
-        # Processar a query normalmente
+
+        # Caso 3: Small talk / mensagem fora do escopo (sem "?" e sem termos acadêmicos)
+        elif not is_greeting and self.greeting_detector.is_small_talk(user_text):
+            logger.info(f"💬 Small talk detectado de {user_id}: '{user_text}'")
+            await message.answer(self.messages.small_talk_response())
+            return
+
+        # Caso 4: Apenas pergunta (ou saudação + pergunta) → RAG
         await self._process_query(message, user_text, user_id)
 
     async def _process_query(self, message: types.Message, user_text: str, user_id: int):

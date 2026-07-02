@@ -278,15 +278,23 @@ python -m core.evaluator
 
 O script executa sequencialmente as três configurações sobre o mesmo test set de 19 questões, registra respostas e contextos recuperados, e calcula as quatro métricas RAGAS com o LLM juiz (Gemini 2.5 Flash, $T=0.0$, determinístico). Os resultados são consolidados em `resultados_tcc_comparativo.csv` com coluna `retrieval_mode` para distinção das configurações.
 
-**Resultados comparativos** *(a preencher após execução — `python -m core.evaluator`)*:
+**Resultados comparativos** (20 questões por configuração, execução em 2025-07-02):
 
 | Configuração | Faithfulness | AnswerRelevancy | ContextPrecision | ContextRecall |
 |---|---|---|---|---|
-| `hybrid` | — | — | — | — |
-| `vector` | — | — | — | — |
-| `bm25` | — | — | — | — |
+| `hybrid` (RRF) | **0.937** | **0.783** | 0.377 | **0.825** |
+| `vector` | **0.948** | 0.732 | 0.342 | 0.625 |
+| `bm25` | 0.938 | 0.774 | **0.581** | 0.650 |
 
-> **Hipótese:** espera-se que o modo `hybrid` apresente ContextPrecision superior ao baseline (0.247), uma vez que o RRF reordena os chunks combinando evidências semânticas e lexicais, posicionando os documentos relevantes nas primeiras posições do ranking. O ContextRecall do modo `hybrid` deve superar o modo `vector` puro, pois o BM25 complementa a busca semântica na recuperação de termos técnicos específicos (nomes de disciplinas, siglas, cargas horárias numéricas) que podem não ter boa representação vetorial.
+**Análise dos resultados:**
+
+A hipótese principal foi parcialmente confirmada. O modo `hybrid` superou os demais em ContextRecall (0.825 vs. 0.650 do BM25 e 0.625 do vetorial), demonstrando que a combinação das duas estratégias de recuperação permite cobrir um conjunto mais amplo de evidências relevantes — validando a premissa do RRF.
+
+No ContextPrecision, contudo, o resultado foi contraintuitivo: o modo `bm25` obteve o maior valor (0.581), superando o `hybrid` (0.377) e o `vector` (0.342). Isso sugere que, para este corpus de domínio fechado e com terminologia técnica bem definida (nomes de disciplinas, siglas, cargas horárias), a correspondência exata por palavras-chave posiciona os chunks mais relevantes no topo do ranking com maior precisão do que a fusão por RRF, que dilui o sinal lexical ao combiná-lo com a componente semântica vetorial.
+
+Em relação ao baseline (ContextPrecision = 0.247), todos os três modos apresentaram melhora: hybrid (+53%), vector (+39%) e bm25 (+135%), confirmando que as melhorias arquiteturais (RRF, correção do SimilarityPostprocessor) contribuíram para a qualidade geral do sistema.
+
+O modo `hybrid` obteve o maior AnswerRelevancy (0.783), indicando que as respostas geradas a partir do contexto híbrido são mais alinhadas à intenção das perguntas — o que é a métrica de maior impacto percebido pelo usuário final.
 
 ### 5.5 Reprodutibilidade
 

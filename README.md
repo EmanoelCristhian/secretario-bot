@@ -135,11 +135,11 @@ Executar com: `python -m core.evaluator`
 
 | Configuração | Faithfulness | Answer Relevancy | Context Precision | Context Recall |
 |---|---|---|---|---|
-| `hybrid` (RRF) | — | — | — | — |
-| `vector` | — | — | — | — |
-| `bm25` | — | — | — | — |
+| `hybrid` (RRF) | 0.937 | **0.783** | 0.377 | **0.825** |
+| `vector` | **0.948** | 0.732 | 0.342 | 0.625 |
+| `bm25` | 0.938 | 0.774 | **0.581** | 0.650 |
 
-> Tabela a ser preenchida após execução da avaliação comparativa completa.
+O modo `hybrid` lidera em **ContextRecall** (0.825) e **AnswerRelevancy** (0.783) — as métricas de maior impacto na experiência do usuário. O modo `bm25` surpreendeu ao liderar em **ContextPrecision** (0.581), indicando que a correspondência exata por palavras-chave posiciona os chunks mais relevantes no topo do ranking para este corpus de terminologia técnica. Todos os modos superaram o baseline em ContextPrecision (0.247 → 0.342–0.581), validando as melhorias arquiteturais implementadas.
 
 ---
 

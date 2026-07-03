@@ -85,18 +85,44 @@ Esse resultado confirma a hipótese central do trabalho: ao combinar as duas est
 
 ## 5. Visão Integrada: Trade-off Precisão × Recall
 
-Os resultados revelam um trade-off claro entre as estratégias:
+### 5.1 Por que esta análise é central para o projeto
 
-| Dimensão | Melhor modo | Valor |
-|---|---|---|
-| Fidelidade ao contexto | `vector` | 0.948 |
-| Relevância da resposta | `hybrid` | 0.783 |
-| Precisão do contexto | `bm25` | 0.581 |
-| Cobertura do contexto | `hybrid` | 0.825 |
+A comparação entre os três modos de recuperação não é meramente acadêmica — ela fundamenta diretamente a decisão de qual estratégia adotar em produção para o Secretário Bot. Cada modo representa uma filosofia distinta de recuperação de informação:
 
-O modo `hybrid` vence nas duas métricas de maior impacto direto na experiência do usuário: **Answer Relevancy** (quão bem a resposta aborda a pergunta) e **Context Recall** (quão completo é o contexto). O modo `bm25` é superior em Context Precision mas inferior em Recall, enquanto o modo `vector` apresenta o pior desempenho geral em relevância e recall.
+- **`vector`** converte a pergunta em um vetor de 384 dimensões (modelo `BAAI/bge-small-en-v1.5`) e busca os chunks mais próximos no espaço semântico por distância L2 no ChromaDB. Recupera documentos com *significado parecido*, mesmo sem compartilhar as mesmas palavras — útil para paráfrases e variações de linguagem.
 
-Considerando que o sistema é projetado para **usuários finais que fazem perguntas naturais sobre documentos acadêmicos**, a métrica de maior impacto percebido é a Answer Relevancy — e para ela, o modo `hybrid` é consistentemente superior.
+- **`bm25`** aplica o algoritmo BM25+ Lucene sobre os tokens da pergunta e dos documentos, pontuando chunks pela frequência e raridade dos termos coincidentes (k₁=1.5, b=0.75, δ=0.5). Recupera documentos que *contêm exatamente os mesmos termos* da pergunta — eficaz quando o usuário usa a terminologia do documento.
+
+- **`hybrid`** não escolhe entre os dois: executa ambas as buscas (top-20 cada) e combina os rankings via *Reciprocal Rank Fusion* (RRF, k=60), onde cada chunk recebe score `1/(60 + rank)` em cada lista e os scores são somados. O resultado é um ranking único que equilibra evidência semântica e lexical.
+
+A comparação entre esses modos é essencial para responder à pergunta de pesquisa do TCC: *a estratégia híbrida produz resultados superiores às abordagens individuais em um domínio acadêmico de corpus fechado?*
+
+### 5.2 Resultados por dimensão
+
+A tabela abaixo sintetiza qual modo venceu em cada dimensão avaliada:
+
+| Dimensão | Melhor modo | Valor | Segundo lugar | Diferença |
+|---|---|---|---|---|
+| Fidelidade ao contexto (Faithfulness) | `vector` | **0.948** | `bm25` (0.938) | +1,1 pp |
+| Relevância da resposta (Answer Relevancy) | `hybrid` | **0.783** | `bm25` (0.774) | +0,9 pp |
+| Precisão do contexto (Context Precision) | `bm25` | **0.581** | `hybrid` (0.377) | +20,4 pp |
+| Cobertura do contexto (Context Recall) | `hybrid` | **0.825** | `bm25` (0.650) | +17,5 pp |
+
+### 5.3 Interpretação do trade-off
+
+Os resultados expõem um trade-off estrutural entre precisão e cobertura:
+
+**O `bm25` é o mais preciso, mas o menos abrangente.** Com Context Precision de 0.581, o BM25 posiciona os chunks mais relevantes nas primeiras posições do ranking com maior consistência que os demais modos. Isso ocorre porque o corpus da FCT/UFPA possui terminologia técnica padronizada — nomes de disciplinas, siglas, artigos de regulamento — e quando o usuário usa exatamente esses termos, a correspondência lexical é direta e precisa. Porém, seu Context Recall (0.650) é o menor entre os modos com RRF e similar ao vetorial, o que significa que, embora os primeiros chunks sejam os mais relevantes, o conjunto recuperado não cobre todas as informações necessárias para responder completamente.
+
+**O `vector` apresenta o pior desempenho geral em recuperação.** Context Precision (0.342) e Context Recall (0.625) são os menores valores entre os três modos, apesar da Faithfulness levemente superior. Isso sugere que o modelo de embeddings `BAAI/bge-small-en-v1.5`, treinado predominantemente em inglês, não captura com precisão suficiente a estrutura semântica de documentos técnicos em português — limitação discutida na Seção 7.3.
+
+**O `hybrid` equilibra os dois extremos e vence no que mais importa para o usuário.** Ao combinar os rankings do BM25 e do vetorial via RRF, o modo híbrido obtém o maior Context Recall (0.825) — 17,5 pp acima do BM25 — sem sacrificar a relevância das respostas. O Answer Relevancy de 0.783 confirma que o contexto mais abrangente se traduz em respostas que abordam melhor o que o usuário perguntou.
+
+### 5.4 Implicação para o sistema em produção
+
+Para um assistente acadêmico que recebe perguntas abertas e em linguagem natural de estudantes, **completude é mais crítica que precisão do ranking**. Uma pergunta como *"o que preciso para me matricular em TCC I?"* exige que o contexto cubra todos os requisitos — créditos, aprovações, prazo —, não apenas o chunk mais preciso sobre um deles. Nesse cenário, o Context Recall alto do `hybrid` (0.825) é a métrica que mais protege o usuário de respostas incompletas.
+
+Por isso, o modo `hybrid` foi adotado como configuração padrão do Secretário Bot em produção, configurado em `config/settings.py` como `RETRIEVAL_MODE = "hybrid"`.
 
 ---
 
